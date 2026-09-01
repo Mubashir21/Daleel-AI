@@ -139,6 +139,7 @@ OPENAI_EMBEDDING_MODEL=text-embedding-3-large
 OPENAI_GENERATION_MODEL=gpt-5.6-terra
 OPENAI_ROUTER_MODEL=gpt-5.6-luna
 COHERE_RERANK_MODEL=rerank-v4.0-pro
+COHERE_RERANK_TIMEOUT=5   # seconds; on timeout/error, falls back to hybrid search order
 
 RETRIEVAL_K=40
 FINAL_K=5

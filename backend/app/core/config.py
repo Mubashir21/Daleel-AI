@@ -25,6 +25,7 @@ class Settings:
 
     # Cohere
     rerank_model: str
+    rerank_timeout: float
 
     # Retrieval defaults
     retrieval_k: int
@@ -57,6 +58,7 @@ def get_settings() -> Settings:
 
         # Cohere
         rerank_model=os.getenv("COHERE_RERANK_MODEL", "rerank-v4.0-pro"),
+        rerank_timeout=float(os.getenv("COHERE_RERANK_TIMEOUT", "5")),
 
         # Retrieval defaults
         retrieval_k=int(os.getenv("RETRIEVAL_K", "40")),

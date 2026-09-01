@@ -41,6 +41,8 @@ def capture_chat(
     retrieval_used: bool,
     input_tokens: int = 0,
     output_tokens: int = 0,
+    retrieval_latency: float | None = None,
+    total_latency: float | None = None,
 ):
     if not settings.posthog_api_key:
         return
@@ -63,6 +65,8 @@ def capture_chat(
                 "$ai_trace_id": session_id,
                 "route": route,
                 "retrieval_used": retrieval_used,
+                "retrieval_latency": retrieval_latency,
+                "total_latency": total_latency,
                 "app": "daleel-ai",
             },
         )

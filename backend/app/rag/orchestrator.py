@@ -33,10 +33,13 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
     Updates conversation state as it goes.
     """
 
+    t_start = time.time()
+
     # Step 1: route the message
     yield status_event("Understanding your question...")
     route_result = route_message(conversation.get_history(), new_message)
     route = route_result.get("route", "retrieval_needed")
+    t_router = time.time() - t_start
     logger.info(f"Route: {route}")
 
     # Step 2: handle out of scope immediately
@@ -54,9 +57,11 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
         logger.info("conversation_only with no cached chunks, falling back to retrieval")
         route = "retrieval_needed"
 
+    retrieval_latency = None
     if route == "retrieval_needed":
         yield status_event("Searching Islamic sources...")
         query = route_result.get("rewritten_query") or new_message
+        t_retrieval = time.time()
         try:
             chunks = retrieve(query)
             conversation.update_chunks(chunks)
@@ -66,6 +71,7 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
             yield token_event(reply)
             yield done_event()
             return
+        retrieval_latency = round(time.time() - t_retrieval, 2)
         yield status_event("Reviewing sources...")
     else:
         # conversation_only — reuse chunks from the previous retrieval
@@ -77,9 +83,12 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
     full_answer = ""
     usage = {}
     start_time = time.time()
+    first_token_at = None
 
     try:
         for token in stream_chat_answer(conversation.get_history(), new_message, context, usage):
+            if first_token_at is None:
+                first_token_at = time.time()
             full_answer += token
             yield token_event(token)
     except Exception as e:
@@ -92,6 +101,13 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
     yield done_event()
 
     latency = round(time.time() - start_time, 2)
+    total_latency = round(time.time() - t_start, 2)
+    ttft = round((first_token_at or time.time()) - t_start, 2)
+    logger.info(
+        f"Timing route={route} router={t_router:.2f}s "
+        f"retrieval={f'{retrieval_latency}s' if retrieval_latency is not None else 'n/a'} "
+        f"generation={latency}s first_token_at={ttft}s total={total_latency}s"
+    )
 
     # Step 5: update conversation history after a successful response
     conversation.add_message("user", new_message)
@@ -108,4 +124,6 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
         retrieval_used=(route == "retrieval_needed"),
         input_tokens=usage.get("input_tokens", 0),
         output_tokens=usage.get("output_tokens", 0),
+        retrieval_latency=retrieval_latency,
+        total_latency=total_latency,
     )
