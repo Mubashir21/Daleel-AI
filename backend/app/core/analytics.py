@@ -13,6 +13,10 @@ posthog.disabled = not bool(settings.posthog_api_key)
 
 # Pricing per million tokens (input, output)
 MODEL_PRICING = {
+    "gpt-5.6-sol":  (4.00, 20.00),
+    "gpt-5.6-terra": (2.00, 12.00),
+    "gpt-5.6-luna": (0.20,  1.20),
+    "gpt-5.5":      (5.00, 30.00),
     "gpt-5.4":      (2.50, 15.00),
     "gpt-5.4-mini": (0.75,  4.50),
     "gpt-4.1":      (2.00,  8.00),

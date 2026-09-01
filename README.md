@@ -33,7 +33,7 @@ This is not a standard RAG pipeline. Daleel AI uses an agentic architecture that
 1. **Router** — a fast LLM call classifies the message: does it need new Islamic sources, can it be answered from conversation context, or is it out of scope?
 2. **Hybrid retrieval** — when retrieval is needed, the question is embedded and matched against ~39,000 IslamQA chunks using both dense vector search (OpenAI embeddings) and sparse keyword search (BM25), with query rewriting for follow-up questions
 3. **Reranking** — top 40 candidates are reranked by Cohere's reranking model to surface the 5 most relevant passages
-4. **Generation** — gpt-5.4 generates a grounded answer using only the retrieved sources, strictly instructed to cite every claim and say "I could not find a clear answer" rather than hallucinate
+4. **Generation** — gpt-5.6-terra generates a grounded answer using only the retrieved sources, strictly instructed to cite every claim and say "I could not find a clear answer" rather than hallucinate
 5. **Streaming** — the answer streams back token by token via SSE with live status updates; the `### Sources` block is parsed client-side and rendered as links
 
 Conversation context is maintained per session with a 6-message sliding window. Follow-ups like "explain that more simply" skip retrieval entirely and reuse cached chunks from the previous turn.
@@ -50,8 +50,8 @@ Conversation context is maintained per session with a 6-message sliding window. 
 | Vector DB     | Pinecone (serverless, hybrid index)              |
 | Sparse search | BM25 via `pinecone-text`                         |
 | Reranking     | Cohere `rerank-v4.0-pro`                         |
-| Router        | OpenAI `gpt-4o-mini` (intent classification)     |
-| Generation    | OpenAI `gpt-5.4`                                 |
+| Router        | OpenAI `gpt-5.6-luna` (intent classification)    |
+| Generation    | OpenAI `gpt-5.6-terra`                           |
 
 ---
 
@@ -136,8 +136,8 @@ PINECONE_INDEX_NAME=islamic-rag-hybrid
 PINECONE_NAMESPACE=islamic-rag-v1
 
 OPENAI_EMBEDDING_MODEL=text-embedding-3-large
-OPENAI_GENERATION_MODEL=gpt-5.4
-OPENAI_ROUTER_MODEL=gpt-4o-mini
+OPENAI_GENERATION_MODEL=gpt-5.6-terra
+OPENAI_ROUTER_MODEL=gpt-5.6-luna
 COHERE_RERANK_MODEL=rerank-v4.0-pro
 
 RETRIEVAL_K=40

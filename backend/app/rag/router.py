@@ -62,8 +62,9 @@ def route_message(messages: list[dict], new_message: str) -> dict:
                 {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0,
-            max_tokens=150,
+            # gpt-5.x models reject temperature/max_tokens; keep reasoning light for speed
+            reasoning_effort="low",
+            max_completion_tokens=400,
         )
 
         raw = response.choices[0].message.content.strip()
