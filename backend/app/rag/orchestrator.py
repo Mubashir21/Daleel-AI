@@ -49,6 +49,11 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
         return
 
     # Step 3: get chunks — either fresh retrieval or cached from last turn
+    if route == "conversation_only" and not conversation.last_chunks:
+        # Nothing cached to answer from (e.g. misrouted first message) — retrieve instead
+        logger.info("conversation_only with no cached chunks, falling back to retrieval")
+        route = "retrieval_needed"
+
     if route == "retrieval_needed":
         yield status_event("Searching Islamic sources...")
         query = route_result.get("rewritten_query") or new_message

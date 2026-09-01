@@ -92,6 +92,9 @@ daleel-ai/
 │   ├── db/                 # Pinecone client + setup
 │   └── schemas/query.py
 │
+├── backend/evals/          # Manual regression evals (false premises, corrections, follow-ups)
+│   └── run_chat_evals.py
+│
 ├── frontend/               # React frontend
 │   └── src/
 │       ├── components/
@@ -172,6 +175,17 @@ uvicorn backend.app.main:app --reload
 cd frontend
 npm install
 npm run dev
+```
+
+---
+
+## Evals
+
+`backend/evals/run_chat_evals.py` runs a handful of tricky multi-turn conversations (impossible premises like "fasting Ramadan during Hajj", user corrections, follow-ups, out-of-scope) through the full pipeline and prints the route, retrieved sources and answer for manual review. Run it after changing any prompt:
+
+```bash
+python backend/evals/run_chat_evals.py               # all cases
+python backend/evals/run_chat_evals.py hajj_ramadan  # one case
 ```
 
 ---

@@ -22,15 +22,18 @@ Use conversation_only when:
 - The user asks about something already mentioned in the conversation (e.g. a scholar, ruling, or source that was already cited).
 - The user asks a follow-up that can be fully answered from what was already said.
 - The user asks what was said, what was cited, or references something from earlier in the conversation.
+- The user corrects, challenges, or disagrees with the previous answer, or states a fact about the topic (e.g. "Hajj is in a different month", "that's not right", "are you sure?"). These are part of the conversation and are NEVER out_of_scope.
 
 Use retrieval_needed when:
 - There is no conversation history.
 - The user introduces a genuinely new Islamic topic, question, or scenario not covered by the previous answer.
 - The user adds a new condition or angle that changes the ruling (e.g. "what if I am travelling?" after a question about fasting).
 - The previous answer explicitly said it could not find an answer, and the user is asking again or rephrasing.
+- The user corrects a misunderstanding in a way that changes what needs to be looked up (e.g. "I meant voluntary fasting, not Ramadan"). Rewrite the query to reflect the corrected question.
 
 Use out_of_scope when:
-- The message is completely unrelated to Islam or any previous Islamic discussion.
+- The message is completely unrelated to Islam AND has no plausible connection to the previous conversation (e.g. coding help, math, sports, random trivia).
+- If there IS conversation history, only use out_of_scope when the user has clearly switched to a non-Islamic topic. Short replies, corrections, objections, acknowledgements, or reactions to the previous answer are never out_of_scope, even if they do not mention Islam.
 
 Rules:
 - When in doubt between retrieval_needed and conversation_only, prefer conversation_only if the previous answer is substantial.
