@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-def parse_page(html, url):
+def parse_page(html, url, lastmod=None):
     soup = BeautifulSoup(html, "html.parser")
 
     # -------------------
@@ -88,5 +88,6 @@ def parse_page(html, url):
         "date_gregorian": date_gregorian,
         "views": views,
         "url": url,
-        "source": source
+        "source": source,
+        "lastmod": lastmod
     }

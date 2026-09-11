@@ -66,6 +66,7 @@ async def run_pipeline(sitemap_url, output_file, limit=None):
 
         print(f"[BATCH] Processing {i} → {i + len(batch)}")
 
+        lastmod_by_url = {u["url"]: u.get("lastmod") for u in batch}
         pages = await scrape_urls(batch)
 
         for url, html in pages:
@@ -74,7 +75,7 @@ async def run_pipeline(sitemap_url, output_file, limit=None):
                 continue
 
             try:
-                data = parse_page(html, url)
+                data = parse_page(html, url, lastmod=lastmod_by_url.get(url))
                 write_jsonl(output_file, data)
 
                 success += 1

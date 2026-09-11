@@ -224,9 +224,25 @@ event: done      → {}
 
 ---
 
+## Keeping the corpus fresh
+
+A weekly GitHub Action (`.github/workflows/crawler-update.yml`, also triggerable manually) diffs the live IslamQA sitemap's `lastmod` timestamps against what's currently stored in Pinecone, and only re-scrapes, re-embeds and re-indexes pages that are new or have actually changed — not the full ~39k-chunk corpus every run.
+
+```bash
+python -m ingestion.run_incremental_update
+```
+
+Before this could go live, the existing corpus needed a one-time backfill, since none of it had a `lastmod` tag yet: `ingestion/backfill_lastmod.py` re-scraped every current page, compared it against the original local scrape to find any edits that had happened unnoticed, tagged the rest with their current `lastmod`, and left removed-from-sitemap pages alone.
+
+Known limitations, deliberately left out of scope for now:
+- Pages removed from the sitemap are never deleted from the index (IslamQA rulings are essentially never taken down).
+- The BM25 sparse encoder (`artifacts/bm25_encoder.pkl`) is fit once on the full corpus; incremental updates still encode correctly against it, but its term-frequency stats will drift slowly as the vocabulary grows. Worth an occasional manual re-fit (`python -m backend.app.retrieval.sparse`).
+
+---
+
 ## Roadmap
 
-- [ ] Cron job to automatically fetch new and updated IslamQA content
+- [x] Cron job to automatically fetch new and updated IslamQA content
 - [ ] Tools: gold/silver price and currency exchange for zakat calculations
 
 ---
