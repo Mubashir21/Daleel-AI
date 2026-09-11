@@ -38,6 +38,9 @@ class Settings:
     # CORS
     frontend_url: str
 
+    # Rate limiting
+    rate_limit: str
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
@@ -73,6 +76,9 @@ def get_settings() -> Settings:
 
         # CORS
         frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173"),
+
+        # Rate limiting
+        rate_limit=os.getenv("RATE_LIMIT", "20/hour"),
     )
 
 
