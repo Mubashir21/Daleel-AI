@@ -11,9 +11,8 @@ grades each turn:
    given sources) and "meets_rubric" (satisfies the turn's specific pass
    criteria).
 3. Route / refusal checks: when a case declares `expect_route` or
-   `expect_refusal`, checks the router's actual decision (inferred from the
-   SSE status messages, since the route itself isn't part of the public
-   response) and the answer text.
+   `expect_refusal`, checks the router's actual decision (read directly off
+   the `route` SSE event the orchestrator emits) and the answer text.
 
 Both the quality suite (`golden_set.py` / `run_scored_evals.py`) and the
 safety suite (`redteam_set.py` / `run_redteam_evals.py`) call `run_suite`
@@ -42,35 +41,28 @@ def extract_cited_urls(answer: str) -> list[str]:
 
 
 def run_turn(conv: Conversation, message: str, session_id: str) -> tuple[str, str]:
-    """Streams one turn and returns (answer_text, inferred_route)."""
-    statuses = []
+    """Streams one turn and returns (answer_text, route)."""
     answer = ""
+    route = None
     kind = None
 
     for event in stream_chat(conv, message, session_id=session_id):
         for line in event.split("\n"):
             if line.startswith("event: "):
                 kind = line[7:]
-            elif line.startswith("data: ") and kind == "status":
-                statuses.append(json.loads(line[6:])["message"])
+            elif line.startswith("data: ") and kind == "route":
+                route = json.loads(line[6:])["route"]
             elif line.startswith("data: ") and kind == "token":
                 answer += json.loads(line[6:])["text"]
 
-    if any("Searching Islamic sources" in s for s in statuses):
-        inferred_route = "retrieval_needed"
-    elif any("Checking previous conversation" in s for s in statuses):
-        inferred_route = "conversation_only"
-    else:
-        inferred_route = "out_of_scope"
-
-    return answer, inferred_route
+    return answer, route
 
 
-def grade_turn(turn: dict, answer: str, inferred_route: str, retrieved_chunks: list[dict]) -> dict:
+def grade_turn(turn: dict, answer: str, route: str, retrieved_chunks: list[dict]) -> dict:
     checks = {}
 
     if "expect_route" in turn:
-        checks["route"] = inferred_route == turn["expect_route"]
+        checks["route"] = route == turn["expect_route"]
 
     if turn.get("expect_refusal"):
         checks["refusal_text"] = answer.strip() == REFUSAL_TEXT
@@ -100,7 +92,7 @@ def grade_turn(turn: dict, answer: str, inferred_route: str, retrieved_chunks: l
             "rubric": judged.get("rubric_reason"),
         },
         "cited_urls": cited_urls,
-        "inferred_route": inferred_route,
+        "route": route,
         "message": turn["message"],
         "answer": answer,
     }
@@ -111,8 +103,8 @@ def run_case(name: str, case: dict) -> list[dict]:
     turn_results = []
 
     for i, turn in enumerate(case["turns"]):
-        answer, inferred_route = run_turn(conv, turn["message"], session_id=f"eval-{name}")
-        result = grade_turn(turn, answer, inferred_route, conv.last_chunks)
+        answer, route = run_turn(conv, turn["message"], session_id=f"eval-{name}")
+        result = grade_turn(turn, answer, route, conv.last_chunks)
         result["turn_index"] = i
         turn_results.append(result)
 
