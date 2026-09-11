@@ -15,3 +15,6 @@ __pycache__/
 
 # Node (root level)
 node_modules/
+
+# Eval run history
+backend/evals/results/
