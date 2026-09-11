@@ -5,6 +5,10 @@ from backend.app.core.config import settings
 from backend.app.db.pinecone_client import get_index
 from backend.app.retrieval.sparse import load_sparse_encoder, encode_sparse, build_sparse_input
 
+# A single Pinecone call with no timeout can hang indefinitely (observed
+# firsthand during the lastmod backfill) and take the whole run down with it.
+PINECONE_CALL_TIMEOUT = 30
+
 
 def delete_stale_chunks(index, doc_ids, namespace):
     """
@@ -14,11 +18,13 @@ def delete_stale_chunks(index, doc_ids, namespace):
     """
     for doc_id in doc_ids:
         stale_ids = [
-            id_ for page in index.list(prefix=f"{doc_id}_chunk_", namespace=namespace)
+            id_ for page in index.list(
+                prefix=f"{doc_id}_chunk_", namespace=namespace, _request_timeout=PINECONE_CALL_TIMEOUT
+            )
             for id_ in page
         ]
         if stale_ids:
-            index.delete(ids=stale_ids, namespace=namespace)
+            index.delete(ids=stale_ids, namespace=namespace, _request_timeout=PINECONE_CALL_TIMEOUT)
 
 
 def run_upsert(file_path, batch_size=100, delete_stale=False):
@@ -70,12 +76,12 @@ def run_upsert(file_path, batch_size=100, delete_stale=False):
             batch.append(vector)
 
             if len(batch) == batch_size:
-                index.upsert(vectors=batch, namespace=settings.pinecone_namespace)
+                index.upsert(vectors=batch, namespace=settings.pinecone_namespace, _request_timeout=PINECONE_CALL_TIMEOUT)
                 batch = []
 
     # flush remaining
     if batch:
-        index.upsert(vectors=batch, namespace=settings.pinecone_namespace)
+        index.upsert(vectors=batch, namespace=settings.pinecone_namespace, _request_timeout=PINECONE_CALL_TIMEOUT)
 
     print("Hybrid upload complete")
 

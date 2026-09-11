@@ -2,6 +2,7 @@ from backend.app.core.config import settings
 from backend.app.db.pinecone_client import get_index
 
 FETCH_BATCH_SIZE = 100
+PINECONE_CALL_TIMEOUT = 30
 
 
 def fetch_pinecone_lastmods(doc_ids):
@@ -21,7 +22,11 @@ def fetch_pinecone_lastmods(doc_ids):
         batch = doc_ids[i:i + FETCH_BATCH_SIZE]
         ids = [f"{doc_id}_chunk_0" for doc_id in batch]
 
-        response = index.fetch(ids=ids, namespace=settings.pinecone_namespace)
+        response = index.fetch(
+            ids=ids,
+            namespace=settings.pinecone_namespace,
+            _request_timeout=PINECONE_CALL_TIMEOUT,
+        )
 
         for doc_id in batch:
             vector = response.vectors.get(f"{doc_id}_chunk_0")

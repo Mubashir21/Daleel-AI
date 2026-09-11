@@ -6,17 +6,28 @@ from ingestion.io import parse_sitemap, write_jsonl
 from ingestion.parser import parse_page
 from ingestion.utils import extract_id, load_existing_ids
 
-async def fetch_page(session, url, sem):
+async def fetch_page(session, url, sem, max_retries=5):
     async with sem:
-        try:
-            async with session.get(url) as res:
-                res.raise_for_status()
-                html = await res.text()
-                await asyncio.sleep(0.1)
-                return url, html
-        except Exception as e:
-            print(f"[ERROR] {url} -> {e}")
-            return url, None
+        for attempt in range(max_retries):
+            try:
+                async with session.get(url) as res:
+                    if res.status == 429:
+                        retry_after = res.headers.get("Retry-After")
+                        delay = float(retry_after) if retry_after else min(2 ** attempt, 30)
+                        print(f"[RATE LIMIT] {url} -> 429, retrying in {delay:.0f}s ({attempt + 1}/{max_retries})")
+                        await asyncio.sleep(delay)
+                        continue
+
+                    res.raise_for_status()
+                    html = await res.text()
+                    await asyncio.sleep(0.1)
+                    return url, html
+            except Exception as e:
+                print(f"[ERROR] {url} -> {e}")
+                return url, None
+
+        print(f"[ERROR] {url} -> gave up after {max_retries} retries (rate limited)")
+        return url, None
 
 
 async def scrape_urls(urls, concurrency=10):
