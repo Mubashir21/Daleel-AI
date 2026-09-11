@@ -10,9 +10,14 @@ import json
 
 router = APIRouter()
 
+# shared_limit with a common scope makes all three endpoints below count
+# against ONE bucket per IP — @limiter.limit() alone gives each endpoint its
+# own independent bucket, which would let one visitor make 3x the intended
+# requests by spreading across endpoints.
+
 
 @router.post("/query", response_model=QueryResponse)
-@limiter.limit(settings.rate_limit)
+@limiter.shared_limit(settings.rate_limit, scope="chat")
 def query(request: Request, payload: QueryRequest):
     try:
         result = generate_answer(payload.query)
@@ -29,7 +34,7 @@ def query(request: Request, payload: QueryRequest):
 
 
 @router.post("/query/stream")
-@limiter.limit(settings.rate_limit)
+@limiter.shared_limit(settings.rate_limit, scope="chat")
 def query_stream(request: Request, payload: QueryRequest):
     try:
         return StreamingResponse(
@@ -44,7 +49,7 @@ def query_stream(request: Request, payload: QueryRequest):
 
 
 @router.post("/chat/stream")
-@limiter.limit(settings.rate_limit)
+@limiter.shared_limit(settings.rate_limit, scope="chat")
 def chat_stream(request: Request, payload: ChatRequest):
     session_id, conversation = get_or_create_session(payload.session_id)
 
