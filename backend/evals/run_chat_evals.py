@@ -1,10 +1,13 @@
 """
 Manual regression evals for the agentic chat flow.
 
-Runs multi-turn conversations through the real pipeline (router → retrieval →
-generation) and prints the route, retrieved sources and answer for each turn so
-you can eyeball behaviour on tricky inputs (false premises, corrections,
-follow-ups, out-of-scope).
+Runs the same cases as `run_scored_evals.py` (defined once in `golden_set.py`)
+through the real pipeline (router -> retrieval -> generation) and prints the
+route, retrieved sources and answer for each turn so you can eyeball behaviour
+on tricky inputs (false premises, corrections, follow-ups, out-of-scope).
+
+For automated pass/fail scoring (citation grounding + LLM-judge faithfulness
+and rubric checks), use `run_scored_evals.py` instead.
 
 Usage (from repo root, with .env configured):
     python backend/evals/run_chat_evals.py              # run all cases
@@ -28,70 +31,24 @@ logging.basicConfig(level=logging.WARNING)
 
 from backend.app.rag.conversation import Conversation  # noqa: E402
 from backend.app.rag.orchestrator import stream_chat  # noqa: E402
-
-
-CASES = {
-    # The demo failure: impossible premise (Hajj and Ramadan never coincide),
-    # followed by the user correcting the assistant.
-    "hajj_ramadan": {
-        "expect": "Turn 1 should point out Hajj and Ramadan are different months, "
-                  "not answer 'yes'. Turn 2 must acknowledge, never refuse as out of scope.",
-        "turns": [
-            "If someone is doing Hajj and they are fasting in Ramadan, and they can't fast, can they break their fast?",
-            "Hajj is in a different month, not Ramadan",
-        ],
-    },
-    # Another false premise: Eid al-Fitr is not in Ramadan.
-    "eid_in_ramadan": {
-        "expect": "Should say Eid al-Fitr comes after Ramadan ends, then explain fasting on Eid is forbidden.",
-        "turns": [
-            "Do I have to fast on Eid al-Fitr since it's still Ramadan?",
-        ],
-    },
-    # A short correction / pushback that does not mention Islam at all.
-    "pushback_no_keywords": {
-        "expect": "Turn 2 is a challenge, not out of scope. Should re-check against the sources.",
-        "turns": [
-            "Is it permissible to combine Maghrib and Isha while travelling?",
-            "are you sure? that doesn't sound right",
-        ],
-    },
-    # Genuinely out of scope, then an Islamic question — router should recover.
-    "true_out_of_scope": {
-        "expect": "Turns 1-2 refused (the follow-up still refers to the Python request). "
-                  "Turn 3 answered normally — router recovers after out-of-scope turns.",
-        "turns": [
-            "Write me a Python function to reverse a string",
-            "Can you explain that more simply?",
-            "What are the things that break wudu?",
-        ],
-    },
-    # Normal follow-up that should reuse cached chunks.
-    "simple_followup": {
-        "expect": "Turn 2 routes conversation_only and simplifies the previous answer.",
-        "turns": [
-            "What are the conditions for zakat on gold?",
-            "Explain that more simply",
-        ],
-    },
-}
+from backend.evals.golden_set import CASES  # noqa: E402
 
 
 def run_case(name: str, case: dict):
     print("\n" + "#" * 90)
     print(f"# CASE: {name}")
-    print(f"# EXPECT: {case['expect']}")
     print("#" * 90)
 
     conv = Conversation()
     for turn in case["turns"]:
         print("\n" + "=" * 90)
-        print(f"USER: {turn}")
+        print(f"USER: {turn['message']}")
+        print(f"EXPECT: {turn['rubric']}")
         print("-" * 90)
 
         answer = ""
         kind = None
-        for event in stream_chat(conv, turn, session_id=f"eval-{name}"):
+        for event in stream_chat(conv, turn["message"], session_id=f"eval-{name}"):
             for line in event.split("\n"):
                 if line.startswith("event: "):
                     kind = line[7:]

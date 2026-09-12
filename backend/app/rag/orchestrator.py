@@ -23,6 +23,9 @@ def token_event(text: str) -> str:
 def done_event() -> str:
     return "event: done\ndata: {}\n\n"
 
+def route_event(route: str) -> str:
+    return f"event: route\ndata: {json.dumps({'route': route})}\n\n"
+
 
 # ── Orchestrator ──────────────────────────────────────────────────────────────
 
@@ -40,7 +43,18 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
     route_result = route_message(conversation.get_history(), new_message)
     route = route_result.get("route", "retrieval_needed")
     t_router = time.time() - t_start
+
+    # conversation_only with nothing cached can't actually be answered from
+    # context alone (e.g. a misrouted first message) — fall back to retrieval
+    # before the route is finalized, so downstream consumers (including the
+    # eval harness listening on the route event below) see the route that's
+    # actually acted on, not the router's raw output.
+    if route == "conversation_only" and not conversation.last_chunks:
+        logger.info("conversation_only with no cached chunks, falling back to retrieval")
+        route = "retrieval_needed"
+
     logger.info(f"Route: {route}")
+    yield route_event(route)
 
     # Step 2: handle out of scope immediately
     if route == "out_of_scope":
@@ -52,11 +66,6 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
         return
 
     # Step 3: get chunks — either fresh retrieval or cached from last turn
-    if route == "conversation_only" and not conversation.last_chunks:
-        # Nothing cached to answer from (e.g. misrouted first message) — retrieve instead
-        logger.info("conversation_only with no cached chunks, falling back to retrieval")
-        route = "retrieval_needed"
-
     retrieval_latency = None
     if route == "retrieval_needed":
         yield status_event("Searching Islamic sources...")
