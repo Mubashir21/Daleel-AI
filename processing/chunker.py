@@ -80,7 +80,8 @@ def create_chunk_objects(record):
 
             # Optional
             "date_hijri": record.get("date_hijri"),
-            "date_gregorian": record.get("date_gregorian")
+            "date_gregorian": record.get("date_gregorian"),
+            "lastmod": record.get("lastmod")
         })
 
     return chunk_objs

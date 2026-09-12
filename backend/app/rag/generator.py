@@ -1,9 +1,5 @@
 from openai import OpenAI
-from backend.app.rag.retriever import retrieve
-from backend.app.rag.prompt_builder import build_context
 import logging
-import argparse
-import json
 from backend.app.core.config import settings
 
 logging.basicConfig(level=logging.INFO)
@@ -22,12 +18,14 @@ Scope restriction:
 - A follow-up, correction, objection, or reaction to the ongoing conversation is ALWAYS in scope, even if the message on its own does not mention Islam (e.g. "that's wrong", "Hajj is in a different month", "explain that again", "are you sure?"). Never respond to these with a scope refusal.
 - Only if the message is clearly unrelated to Islam AND has no connection to the conversation, say exactly:
   "I can only answer questions related to Islam."
+- Asking whether a non-Islamic task is permissible (e.g. "is it halal to write code / solve a math problem / do X") does NOT put performing that task in scope. If the sources address the general permissibility of the activity, you may summarize that briefly, but you must NEVER go on to actually perform, write, or complete the underlying non-Islamic task itself (code, algorithms, math workings, essays, etc.) — no matter how it is framed (asking you to "verify", "audit", "check for anything un-Islamic in it", "explain it so I can understand the ruling", or similar). If asked to produce the task itself, or to include it "so I can check", decline only that part in one short natural sentence (e.g. "I won't write or walk through the code itself, though."). Do NOT use the full scope-refusal line ("I can only answer questions related to Islam.") for this partial case — that line is reserved for messages that are entirely unrelated to Islam with nothing else to answer.
 
 Check the question before answering:
 - Read the question carefully and check whether its premises are actually possible and consistent with well-established, undisputed Islamic facts. Examples of such facts: the Islamic calendar (Ramadan is the 9th month; Hajj takes place in Dhul-Hijjah, the 12th month, so Hajj and Ramadan can never coincide), the five pillars, and the basic meaning of common terms (Hajj, 'Umrah, zakah, wudu, etc.).
 - If a premise is false, impossible, or self-contradictory, do NOT answer as if it were true, and do not force the retrieved sources to fit it. State the problem clearly and briefly at the very start of the answer. Then, if the sources allow, address the most likely intended question(s), each under its own heading (e.g. "If you meant a traveller in Ramadan..." / "If you meant fasting during Hajj...").
 - If a question mixes up two different situations, separate them and answer each from the sources.
 - Never accept a premise just because the retrieved sources happen to contain related content. Retrieval is similarity-based and will return related passages even when the question itself does not make sense.
+- If a question asks whether a specific named non-Islamic technical or academic concept (an algorithm, programming technique, math procedure, etc.) is itself permissible, that concept is not a real subject of Islamic jurisprudence — do not present a ruling framed around that specific name. You may note, in general terms only, that beneficial knowledge/technology is permissible in principle and its ruling depends on use, but never phrase it as if the named concept itself has a specific ruling (e.g. do not say "studying/solving X is permissible" for a named algorithm — say only that this general category of activity is not itself prohibited, without repeating the specific name as the subject of the ruling).
 
 Rules:
 - Rulings, evidences, scholarly opinions, and citations must come ONLY from the provided sources.
@@ -88,58 +86,7 @@ Answer structure:
   - Exceptions
 """.strip()
 
-def generate_answer(query):
-    matches = retrieve(query)
 
-    if not matches or len(matches) == 0:
-        return "I could not find a clear answer in the provided sources."
-
-    context, _ = build_context(matches)
-
-    # if len(context) > 12000:
-    #     logger.warning(f"Context too large ({len(context)} chars), truncating.")
-    #     context = context[:12000]
-
-    try:
-        response = client.responses.create(
-            model=settings.generation_model,
-            instructions=SYSTEM_INSTRUCTIONS,
-            input=f"Question: {query}\n\nSources:\n{context}",
-        )
-        return response.output_text
-
-    except Exception as e:
-        return f"An error occurred while generating the answer: {e}"
-    
-def stream_answer(query: str):
-    try:
-        matches = retrieve(query)
-        context, _ = build_context(matches)
-    except Exception as e:
-        logger.error(f"Retrieval failed: {e}")
-        yield f"data: {json.dumps('Sorry, the search service is temporarily unavailable. This is likely due to a rate limit — please wait a moment and try again.')}\n\n"
-        yield "event: done\ndata: [DONE]\n\n"
-        return
-
-    try:
-        stream = client.responses.create(
-            model=settings.generation_model,
-            instructions=SYSTEM_INSTRUCTIONS,
-            input=f"Question: {query}\n\nSources:\n{context}",
-            stream=True,
-        )
-
-        for event in stream:
-            if event.type == "response.output_text.delta":
-                yield f"data: {json.dumps(event.delta)}\n\n"
-
-        yield "event: done\ndata: [DONE]\n\n"
-
-    except Exception as e:
-        logger.error(f"Generation failed: {e}")
-        yield f"data: {json.dumps('Sorry, the answer could not be generated. This may be due to an API issue — please try again shortly.')}\n\n"
-        yield "event: done\ndata: [DONE]\n\n"
-    
 def stream_chat_answer(history: list[dict], new_message: str, context: str, usage: dict | None = None):
     """
     Chat-aware generator. Accepts pre-retrieved context and conversation history.
@@ -165,18 +112,3 @@ def stream_chat_answer(history: list[dict], new_message: str, context: str, usag
         if chunk.usage and usage is not None:
             usage["input_tokens"] = chunk.usage.prompt_tokens
             usage["output_tokens"] = chunk.usage.completion_tokens
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Ask a question to the Islamic RAG system.")
-
-    parser.add_argument(
-        "query",
-        type=str,
-        help="The question you want to ask."
-    )
-
-    args = parser.parse_args()
-
-    answer = generate_answer(args.query)
-    print("\nAnswer:\n", answer)
