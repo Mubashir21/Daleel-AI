@@ -5,7 +5,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { SidebarMenuButton } from "@/components/ui/sidebar"
 import { Info } from "lucide-react"
 
 const steps = [
@@ -31,10 +31,10 @@ export default function HowItWorksDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground text-xs gap-1.5">
-          <Info className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">How it works</span>
-        </Button>
+        <SidebarMenuButton tooltip="How it works">
+          <Info />
+          <span>How it works</span>
+        </SidebarMenuButton>
       </DialogTrigger>
       <DialogContent className="max-w-md max-h-[85dvh] flex flex-col">
         <DialogHeader>
@@ -57,10 +57,11 @@ export default function HowItWorksDialog() {
 
           <div className="border-t border-border pt-3 space-y-1.5">
             <p className="font-medium text-foreground">Things to know</p>
-            <ul className="space-y-1 list-disc list-inside">
+            <ul className="space-y-1 list-disc list-outside pl-4">
               <li>Conversation context is kept within your session. Closing or refreshing the page starts a fresh conversation.</li>
               <li>Cohere's free tier is used for reranking, which has a rate limit of 10 requests per minute.</li>
               <li>Source content is from IslamQA. All credit for the underlying knowledge goes to them.</li>
+              <li>New and updated IslamQA articles are picked up automatically every week, so answers stay current.</li>
             </ul>
           </div>
         </div>

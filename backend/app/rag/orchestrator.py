@@ -23,6 +23,9 @@ def token_event(text: str) -> str:
 def done_event() -> str:
     return "event: done\ndata: {}\n\n"
 
+def sources_event(titles: dict) -> str:
+    return f"event: sources\ndata: {json.dumps(titles)}\n\n"
+
 def route_event(route: str) -> str:
     return f"event: route\ndata: {json.dumps({'route': route})}\n\n"
 
@@ -88,7 +91,9 @@ def stream_chat(conversation: Conversation, new_message: str, session_id: str = 
         chunks = conversation.last_chunks
 
     # Step 4: build context and stream the answer
-    context = build_context(chunks)
+    context, source_titles = build_context(chunks)
+    if source_titles:
+        yield sources_event(source_titles)
     full_answer = ""
     usage = {}
     start_time = time.time()

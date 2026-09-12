@@ -5,17 +5,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { SidebarMenuButton } from "@/components/ui/sidebar"
 import { TriangleAlert } from "lucide-react"
 
 export default function DisclaimerDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground text-xs gap-1.5">
-          <TriangleAlert className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Disclaimer</span>
-        </Button>
+        <SidebarMenuButton tooltip="Disclaimer">
+          <TriangleAlert />
+          <span>Disclaimer</span>
+        </SidebarMenuButton>
       </DialogTrigger>
       <DialogContent className="max-w-md max-h-[85dvh] flex flex-col">
         <DialogHeader>
@@ -23,8 +23,8 @@ export default function DisclaimerDialog() {
         </DialogHeader>
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed overflow-y-auto pr-1">
           <p>
-            This tool is a personal project built to apply and learn about
-            Retrieval-Augmented Generation (RAG). It is not a substitute for qualified Islamic scholarship.
+            This is an experimental AI tool that answers Islamic questions by
+            summarizing content from IslamQA. It is not a substitute for qualified Islamic scholarship.
           </p>
           <p>
             All answers are AI-generated summaries based on Q&amp;A content from{" "}

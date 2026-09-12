@@ -18,7 +18,7 @@ export function parseSources(text) {
   return { answer, sources }
 }
 
-export async function streamChat(message, sessionId, onSessionId, onStatus, onChunk, onDone, onError) {
+export async function streamChat(message, sessionId, onSessionId, onStatus, onChunk, onSourceTitles, onDone, onError) {
   let res
 
   try {
@@ -77,7 +77,12 @@ export async function streamChat(message, sessionId, onSessionId, onStatus, onCh
         } else if (eventType === "token") {
           const { text } = JSON.parse(dataLine)
           accumulated += text
-          onChunk(text)
+          // Strip a "### Sources" footer as it streams in, not just at the
+          // end — otherwise it renders raw (heading + bracket citations)
+          // for a moment before onDone replaces it with the parsed answer.
+          onChunk(parseSources(accumulated).answer)
+        } else if (eventType === "sources") {
+          onSourceTitles(JSON.parse(dataLine))
         } else if (eventType === "done") {
           onDone(parseSources(accumulated))
           return

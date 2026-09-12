@@ -1,66 +1,72 @@
 import ReactMarkdown from "react-markdown"
-import { Card } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import SourceList from "./SourceList"
+import remarkGfm from "remark-gfm"
+import { Message, MessageContent } from "@/components/ui/message"
+import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import { Marker, MarkerContent } from "@/components/ui/marker"
 import CopyButton from "./CopyButton"
+import CitationPill from "./CitationPill"
+import { remarkCitations } from "@/lib/citationPlugin"
 
 function UserBubble({ text }) {
   return (
-    <div className="flex justify-end">
-      <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[75%] text-sm">
-        {text}
-      </div>
-    </div>
+    <Message align="end">
+      <MessageContent>
+        <Bubble align="end">
+          <BubbleContent className="rounded-br-sm">{text}</BubbleContent>
+        </Bubble>
+      </MessageContent>
+    </Message>
   )
 }
 
 function StatusIndicator({ status }) {
   return (
-    <div className="flex justify-start">
-      <Card className="w-[85%] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="flex gap-0.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
-          </span>
-          <span className="text-sm text-muted-foreground">{status}</span>
-        </div>
-      </Card>
-    </div>
+    <Message align="start">
+      <MessageContent>
+        <Marker>
+          <MarkerContent className="shimmer">{status}</MarkerContent>
+        </Marker>
+      </MessageContent>
+    </Message>
   )
 }
 
-function AssistantBubble({ text, sources, loading, status }) {
+function AssistantBubble({ text, sources, loading, status, done }) {
   if (loading) {
-    if (status) return <StatusIndicator status={status} />
-    return (
-      <div className="flex justify-start">
-        <Card className="w-[85%] px-4 py-3 space-y-2">
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-[90%]" />
-          <Skeleton className="h-3 w-[75%]" />
-        </Card>
+    return <StatusIndicator status={status} />
+  }
+
+  const markdownComponents = {
+    "citation-pill": ({ number }) => <CitationPill number={number} sources={sources} />,
+    table: ({ children }) => (
+      <div className="overflow-x-auto">
+        <table>{children}</table>
       </div>
-    )
+    ),
   }
 
   return (
-    <div className="flex justify-start">
-      <Card className="max-w-[85%] px-4 py-3">
-        <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground
+    <Message align="start">
+      <MessageContent>
+        <div
+          className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground
           [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
           [&_p]:text-sm [&_p]:leading-relaxed [&_p]:mb-2
           [&_ul]:text-sm [&_ul]:pl-4 [&_ul]:mb-2
-          [&_li]:mb-0.5">
-          <ReactMarkdown>{text}</ReactMarkdown>
+          [&_li]:mb-0.5
+          [&_table]:text-sm [&_th]:font-semibold"
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm, remarkCitations]} components={markdownComponents}>
+            {text}
+          </ReactMarkdown>
         </div>
-        <SourceList sources={sources} />
-        <div className="mt-2 flex justify-end">
-          <CopyButton text={text} />
-        </div>
-      </Card>
-    </div>
+        {done && (
+          <div className="flex justify-start">
+            <CopyButton text={text} />
+          </div>
+        )}
+      </MessageContent>
+    </Message>
   )
 }
 
@@ -72,6 +78,7 @@ export default function MessageBubble({ message }) {
       sources={message.sources}
       loading={message.loading}
       status={message.status}
+      done={message.done}
     />
   )
 }

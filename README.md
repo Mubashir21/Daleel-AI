@@ -178,6 +178,8 @@ npm install
 npm run dev
 ```
 
+Or, once both are set up, start both together from the repo root with `./dev.sh` (Git Bash) — it stops both cleanly on Ctrl+C.
+
 ---
 
 ## Evals
