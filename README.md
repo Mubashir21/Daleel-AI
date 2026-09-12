@@ -196,7 +196,6 @@ python backend/evals/run_chat_evals.py hajj_ramadan  # one case
 | Method | Endpoint        | Description                          |
 | ------ | --------------- | ------------------------------------ |
 | POST   | `/chat/stream`  | Agentic chat with SSE status events  |
-| POST   | `/query/stream` | Legacy single-turn streaming         |
 | GET    | `/health`       | Health check                         |
 
 **Request body (`/chat/stream`):**

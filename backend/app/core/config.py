@@ -41,6 +41,9 @@ class Settings:
     # Evals
     eval_judge_model: str
 
+    # Rate limiting
+    rate_limit: str
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
@@ -79,6 +82,9 @@ def get_settings() -> Settings:
 
         # Evals
         eval_judge_model=os.getenv("EVAL_JUDGE_MODEL", "gpt-5.6-luna"),
+
+        # Rate limiting
+        rate_limit=os.getenv("RATE_LIMIT", "20/hour"),
     )
 
 
