@@ -94,7 +94,7 @@ def generate_answer(query):
     if not matches or len(matches) == 0:
         return "I could not find a clear answer in the provided sources."
 
-    context = build_context(matches)
+    context, _ = build_context(matches)
 
     # if len(context) > 12000:
     #     logger.warning(f"Context too large ({len(context)} chars), truncating.")
@@ -114,7 +114,7 @@ def generate_answer(query):
 def stream_answer(query: str):
     try:
         matches = retrieve(query)
-        context = build_context(matches)
+        context, _ = build_context(matches)
     except Exception as e:
         logger.error(f"Retrieval failed: {e}")
         yield f"data: {json.dumps('Sorry, the search service is temporarily unavailable. This is likely due to a rate limit — please wait a moment and try again.')}\n\n"

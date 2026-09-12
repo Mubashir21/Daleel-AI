@@ -18,7 +18,7 @@ export function parseSources(text) {
   return { answer, sources }
 }
 
-export async function streamChat(message, sessionId, onSessionId, onStatus, onChunk, onDone, onError) {
+export async function streamChat(message, sessionId, onSessionId, onStatus, onChunk, onSourceTitles, onDone, onError) {
   let res
 
   try {
@@ -77,65 +77,15 @@ export async function streamChat(message, sessionId, onSessionId, onStatus, onCh
         } else if (eventType === "token") {
           const { text } = JSON.parse(dataLine)
           accumulated += text
-          onChunk(text)
+          // Strip a "### Sources" footer as it streams in, not just at the
+          // end — otherwise it renders raw (heading + bracket citations)
+          // for a moment before onDone replaces it with the parsed answer.
+          onChunk(parseSources(accumulated).answer)
+        } else if (eventType === "sources") {
+          onSourceTitles(JSON.parse(dataLine))
         } else if (eventType === "done") {
           onDone(parseSources(accumulated))
           return
-        }
-      }
-    }
-  } catch (err) {
-    onError(err)
-    return
-  }
-
-  onDone(parseSources(accumulated))
-}
-
-export async function streamQuery(question, onChunk, onDone, onError) {
-  let res
-
-  try {
-    res = await fetch(`${API_BASE}/query/stream`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: question }),
-    })
-  } catch (err) {
-    onError(err)
-    return
-  }
-
-  if (!res.ok) {
-    onError(new Error(`Server error: ${res.status}`))
-    return
-  }
-
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let accumulated = ""
-  let buffer = ""
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split("\n")
-      buffer = lines.pop()
-
-      for (const line of lines) {
-        if (line.startsWith("event: done")) continue
-        if (line.startsWith("data: ")) {
-          const raw = line.slice(6)
-          if (raw === "[DONE]") {
-            onDone(parseSources(accumulated))
-            return
-          }
-          const text = JSON.parse(raw)
-          accumulated += text
-          onChunk(text)
         }
       }
     }

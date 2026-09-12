@@ -5,6 +5,7 @@ import { PostHogProvider } from 'posthog-js/react'
 import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './components/theme-provider.jsx'
+import { TooltipProvider } from './components/ui/tooltip.jsx'
 
 if (import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN) {
   posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
@@ -18,7 +19,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <PostHogProvider client={posthog}>
       <ThemeProvider defaultTheme="system" storageKey="daleel-ai-theme">
-        <App />
+        <TooltipProvider>
+          <App />
+        </TooltipProvider>
       </ThemeProvider>
     </PostHogProvider>
   </StrictMode>,
