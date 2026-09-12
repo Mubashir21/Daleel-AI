@@ -1,9 +1,5 @@
 from openai import OpenAI
-from backend.app.rag.retriever import retrieve
-from backend.app.rag.prompt_builder import build_context
 import logging
-import argparse
-import json
 from backend.app.core.config import settings
 
 logging.basicConfig(level=logging.INFO)
@@ -88,58 +84,7 @@ Answer structure:
   - Exceptions
 """.strip()
 
-def generate_answer(query):
-    matches = retrieve(query)
 
-    if not matches or len(matches) == 0:
-        return "I could not find a clear answer in the provided sources."
-
-    context = build_context(matches)
-
-    # if len(context) > 12000:
-    #     logger.warning(f"Context too large ({len(context)} chars), truncating.")
-    #     context = context[:12000]
-
-    try:
-        response = client.responses.create(
-            model=settings.generation_model,
-            instructions=SYSTEM_INSTRUCTIONS,
-            input=f"Question: {query}\n\nSources:\n{context}",
-        )
-        return response.output_text
-
-    except Exception as e:
-        return f"An error occurred while generating the answer: {e}"
-    
-def stream_answer(query: str):
-    try:
-        matches = retrieve(query)
-        context = build_context(matches)
-    except Exception as e:
-        logger.error(f"Retrieval failed: {e}")
-        yield f"data: {json.dumps('Sorry, the search service is temporarily unavailable. This is likely due to a rate limit — please wait a moment and try again.')}\n\n"
-        yield "event: done\ndata: [DONE]\n\n"
-        return
-
-    try:
-        stream = client.responses.create(
-            model=settings.generation_model,
-            instructions=SYSTEM_INSTRUCTIONS,
-            input=f"Question: {query}\n\nSources:\n{context}",
-            stream=True,
-        )
-
-        for event in stream:
-            if event.type == "response.output_text.delta":
-                yield f"data: {json.dumps(event.delta)}\n\n"
-
-        yield "event: done\ndata: [DONE]\n\n"
-
-    except Exception as e:
-        logger.error(f"Generation failed: {e}")
-        yield f"data: {json.dumps('Sorry, the answer could not be generated. This may be due to an API issue — please try again shortly.')}\n\n"
-        yield "event: done\ndata: [DONE]\n\n"
-    
 def stream_chat_answer(history: list[dict], new_message: str, context: str, usage: dict | None = None):
     """
     Chat-aware generator. Accepts pre-retrieved context and conversation history.
@@ -165,18 +110,3 @@ def stream_chat_answer(history: list[dict], new_message: str, context: str, usag
         if chunk.usage and usage is not None:
             usage["input_tokens"] = chunk.usage.prompt_tokens
             usage["output_tokens"] = chunk.usage.completion_tokens
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Ask a question to the Islamic RAG system.")
-
-    parser.add_argument(
-        "query",
-        type=str,
-        help="The question you want to ask."
-    )
-
-    args = parser.parse_args()
-
-    answer = generate_answer(args.query)
-    print("\nAnswer:\n", answer)
