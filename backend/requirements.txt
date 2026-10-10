@@ -30,7 +30,7 @@ markdown-it-py==4.0.0
 mdurl==0.1.2
 mmh3==4.1.0
 multidict==6.7.1
-nltk==3.9.4
+nltk==3.10.3
 numpy==2.4.4
 openai==2.33.0
 orjson==3.11.8
