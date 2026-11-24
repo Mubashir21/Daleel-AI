@@ -19,7 +19,7 @@
     "clsx": "^2.1.1",
     "cn": "^0.2.6",
     "lucide-react": "^1.14.0",
-    "posthog-js": "^1.373.4",
+    "posthog-js": "^1.454.2",
     "radix-ui": "^1.4.3",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
